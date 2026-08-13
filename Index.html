@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cadence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --mist:#EDF1F3; --paper:#FFFFFF; --ink:#20242C; --ink-soft:#5B6270; --ink-faint:#9AA2AC; --line:#DEE4E8;
+    --sun:#E2A73E; --sun-soft:#FBEECE; --tide:#2F8F82; --tide-soft:#D9EFEA; --dusk:#5B5FB0; --dusk-soft:#E5E5F7;
+    --high:#C2543E; --high-soft:#F7E1DC; --med:#E2A73E; --med-soft:#FBEECE; --low:#3E8E5C; --low-soft:#DCEEE1;
+    --radius:16px; --radius-sm:10px;
+    --shadow:0 1px 2px rgba(32,36,44,0.05), 0 10px 28px -14px rgba(32,36,44,0.18);
+    --font-display:'Fraunces', serif; --font-body:'Inter', sans-serif; --font-mono:'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--mist); color:var(--ink); font-family:var(--font-body); min-height:100vh;}
+  .wrap{max-width:640px; margin:0 auto; padding:24px 18px 60px;}
+  #loading{display:flex; align-items:center; justify-content:center; min-height:280px; color:var(--ink-faint); font-family:var(--font-mono); font-size:13px;}
+  header.app-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:20px;}
+  header.app-head h1{font-family:var(--font-display); font-weight:700; font-style:italic; font-size:28px; margin:0;}
+  .sub{font-family:var(--font-mono); font-size:11px; color:var(--ink-faint);}
+
+  nav.tabs{display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:18px; overflow-x:auto;}
+  nav.tabs button{font-family:var(--font-mono); font-size:12px; letter-spacing:.05em; text-transform:uppercase; background:none; border:none; border-bottom:3px solid transparent; padding:10px 14px 9px; color:var(--ink-faint); cursor:pointer; white-space:nowrap;}
+  nav.tabs button.active{color:var(--ink);}
+  nav.tabs button[data-tab="daily"].active{border-color:var(--sun);}
+  nav.tabs button[data-tab="weekly"].active{border-color:var(--tide);}
+  nav.tabs button[data-tab="monthly"].active{border-color:var(--dusk);}
+  nav.tabs button[data-tab="settings"].active{border-color:var(--ink);}
+
+  .panel{display:none;} .panel.active{display:block;}
+  .card{background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:6px 16px 16px;}
+
+  ul.tasklist{list-style:none; margin:0; padding:0;}
+  li.task{display:flex; align-items:center; gap:10px; padding:12px 2px; border-bottom:1px solid var(--line);}
+  li.task:last-child{border-bottom:none;}
+  button.check{flex:0 0 auto; width:22px; height:22px; border-radius:50%; border:2px solid var(--line); background:transparent; cursor:pointer; position:relative;}
+  li.task.checked button.check{background:var(--ink-soft); border-color:var(--ink-soft);}
+  li.task.checked button.check::after{content:'✓'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; font-weight:700;}
+  .task-text{flex:1 1 auto; font-size:14.5px; line-height:1.35; word-break:break-word;}
+  li.task.checked .task-text{color:var(--ink-faint); text-decoration:line-through;}
+
+  select.urgency{
+    font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.03em;
+    border:none; border-radius:999px; padding:4px 8px; cursor:pointer; appearance:none; -webkit-appearance:none;
+  }
+  select.urgency.High{background:var(--high-soft); color:var(--high);}
+  select.urgency.Medium{background:var(--med-soft); color:#8a5a12;}
+  select.urgency.Low{background:var(--low-soft); color:var(--low);}
+
+  button.delete{flex:0 0 auto; background:none; border:none; cursor:pointer; color:var(--ink-faint); font-size:18px; padding:2px 4px; border-radius:6px;}
+  button.delete:hover{color:var(--high); background:rgba(194,84,62,0.08);}
+
+  .empty-state{padding:22px 4px; color:var(--ink-faint); font-size:13.5px;}
+
+  .add-row{display:flex; gap:8px; padding-top:12px; flex-wrap:wrap;}
+  .add-row input[type=text]{flex:1 1 160px; font-family:var(--font-body); font-size:14px; padding:10px 12px; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--mist); color:var(--ink);}
+  .add-row select{font-family:var(--font-mono); font-size:12px; padding:0 10px; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--mist); color:var(--ink);}
+  .add-row button{font-family:var(--font-mono); font-size:12px; text-transform:uppercase; padding:0 16px; border-radius:var(--radius-sm); border:none; cursor:pointer; background:var(--ink); color:#fff;}
+
+  .summary-row{display:flex; align-items:center; justify-content:space-between; padding:12px 2px 2px; font-family:var(--font-mono); font-size:12px; color:var(--ink-soft);}
+  .summary-row .bar{flex:1 1 auto; height:6px; border-radius:4px; background:var(--line); margin:0 12px; overflow:hidden;}
+  .summary-row .bar > span{display:block; height:100%; background:var(--ink); }
+
+  .settings-grid{display:flex; flex-direction:column; gap:14px;}
+  .field label{display:block; font-family:var(--font-mono); font-size:11px; text-transform:uppercase; color:var(--ink-faint); margin-bottom:6px;}
+  .field input{width:100%; font-family:var(--font-body); font-size:14px; padding:10px 12px; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--mist);}
+  .field.inline{display:flex; align-items:center; gap:10px;}
+  .field.inline input{width:80px;}
+  .save-btn{font-family:var(--font-mono); font-size:12px; text-transform:uppercase; padding:10px 18px; border-radius:var(--radius-sm); border:none; cursor:pointer; background:var(--ink); color:#fff; align-self:flex-start;}
+  .status-pill{font-family:var(--font-mono); font-size:11px; padding:4px 10px; border-radius:999px; background:var(--low-soft); color:var(--low); display:inline-block;}
+  .toast{position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; font-family:var(--font-mono); font-size:12px; padding:8px 16px; border-radius:999px; opacity:0; pointer-events:none; transition:opacity .2s ease;}
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="loading">loading cadence…</div>
+  <div id="app" style="display:none;">
+    <header class="app-head">
+      <h1>Cadence</h1>
+      <span class="sub" id="today-label"></span>
+    </header>
+
+    <nav class="tabs">
+      <button data-tab="daily" class="active">Today</button>
+      <button data-tab="weekly">This Week</button>
+      <button data-tab="monthly">This Month</button>
+      <button data-tab="settings">Reminders</button>
+    </nav>
+
+    <section class="panel active" id="daily-panel">
+      <div class="card">
+        <ul class="tasklist" id="daily-list"></ul>
+        <div class="add-row">
+          <input type="text" id="daily-input" placeholder="What do you need to do today?" maxlength="140">
+          <select id="daily-urgency"><option value="High">High</option><option value="Medium" selected>Medium</option><option value="Low">Low</option></select>
+          <button onclick="addTask('daily')">Add</button>
+        </div>
+        <div class="summary-row" id="daily-summary"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="weekly-panel">
+      <div class="card">
+        <ul class="tasklist" id="weekly-list"></ul>
+        <div class="add-row">
+          <input type="text" id="weekly-input" placeholder="Add a weekly routine task" maxlength="140">
+          <select id="weekly-urgency"><option value="High">High</option><option value="Medium" selected>Medium</option><option value="Low">Low</option></select>
+          <button onclick="addTask('weekly')">Add</button>
+        </div>
+        <div class="summary-row" id="weekly-summary"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="monthly-panel">
+      <div class="card">
+        <ul class="tasklist" id="monthly-list"></ul>
+        <div class="add-row">
+          <input type="text" id="monthly-input" placeholder="Add a monthly routine task" maxlength="140">
+          <select id="monthly-urgency"><option value="High">High</option><option value="Medium" selected>Medium</option><option value="Low">Low</option></select>
+          <button onclick="addTask('monthly')">Add</button>
+        </div>
+        <div class="summary-row" id="monthly-summary"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="settings-panel">
+      <div class="card" style="padding-top:16px;">
+        <div class="settings-grid">
+          <div class="field">
+            <label>Send reminder emails to</label>
+            <input type="email" id="notify-email" placeholder="you@example.com">
+          </div>
+          <div class="field inline">
+            <label style="margin:0;">Daily digest hour (0–23)</label>
+            <input type="number" id="reminder-hour" min="0" max="23">
+          </div>
+          <div>
+            <span class="status-pill" id="trigger-status">checking…</span>
+          </div>
+          <button class="save-btn" onclick="saveSettings()">Save & schedule</button>
+          <p class="sub" style="line-height:1.5;">One email digest is sent per day listing every open task, sorted by urgency (🔴 High, 🟡 Medium, 🟢 Low). You can also trigger it manually from the Sheet's <b>Cadence</b> menu → "Send reminder email now".</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+  var state = null;
+  var CADENCES = ['daily', 'weekly', 'monthly'];
+
+  function escapeHTML(str){
+    return String(str).replace(/[&<>"']/g, function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+
+  function showToast(msg){
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 1800);
+  }
+
+  function renderList(cadence){
+    var tasks = state[cadence] || [];
+    var listEl = document.getElementById(cadence + '-list');
+    if(tasks.length === 0){
+      listEl.innerHTML = '<li class="empty-state">Nothing here yet.</li>';
+    } else {
+      var order = {High:0, Medium:1, Low:2};
+      var sorted = tasks.slice().sort(function(a,b){ return order[a.urgency]-order[b.urgency]; });
+      listEl.innerHTML = sorted.map(function(t){
+        var checkedClass = t.completed ? ' checked' : '';
+        return '<li class="task' + checkedClass + '" data-id="' + t.id + '">' +
+          '<button class="check" onclick="toggleTask(\'' + cadence + '\',\'' + t.id + '\')"></button>' +
+          '<span class="task-text">' + escapeHTML(t.text) + '</span>' +
+          '<select class="urgency ' + t.urgency + '" onchange="changeUrgency(\'' + cadence + '\',\'' + t.id + '\',this.value)">' +
+            ['High','Medium','Low'].map(function(u){ return '<option value="'+u+'"'+(u===t.urgency?' selected':'')+'>'+u+'</option>'; }).join('') +
+          '</select>' +
+          '<button class="delete" onclick="deleteTask(\'' + cadence + '\',\'' + t.id + '\')">×</button>' +
+        '</li>';
+      }).join('');
+    }
+    var completed = tasks.filter(function(t){ return t.completed; }).length;
+    var total = tasks.length;
+    var pct = total > 0 ? Math.round((completed/total)*100) : 0;
+    document.getElementById(cadence + '-summary').innerHTML =
+      '<span>' + completed + ' of ' + total + ' done</span>' +
+      '<span class="bar"><span style="width:' + pct + '%"></span></span>' +
+      '<span>' + pct + '%</span>';
+  }
+
+  function renderAll(){
+    CADENCES.forEach(renderList);
+    document.getElementById('today-label').textContent = new Date().toLocaleDateString(undefined, { weekday:'long', month:'short', day:'numeric' });
+    document.getElementById('notify-email').value = state.settings.notifyEmail || '';
+    document.getElementById('reminder-hour').value = state.settings.reminderHour;
+    var pill = document.getElementById('trigger-status');
+    if(state.settings.triggerActive){
+      pill.textContent = 'Daily reminder active — ' + state.settings.reminderHour + ':00';
+      pill.style.background = 'var(--low-soft)'; pill.style.color = 'var(--low)';
+    } else {
+      pill.textContent = 'No reminder scheduled yet';
+      pill.style.background = 'var(--med-soft)'; pill.style.color = '#8a5a12';
+    }
+  }
+
+  function refresh(){
+    google.script.run.withSuccessHandler(function(data){
+      state = data;
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      renderAll();
+    }).withFailureHandler(function(err){
+      document.getElementById('loading').textContent = 'Error loading: ' + err.message;
+    }).getAllTasks();
+  }
+
+  function addTask(cadence){
+    var input = document.getElementById(cadence + '-input');
+    var urgency = document.getElementById(cadence + '-urgency').value;
+    var text = input.value.trim();
+    if(!text) return;
+    input.disabled = true;
+    google.script.run.withSuccessHandler(function(data){
+      state = data; renderAll(); input.value=''; input.disabled=false; input.focus();
+    }).withFailureHandler(function(err){ input.disabled=false; showToast('Error: ' + err.message); }).addTask(cadence, text, urgency);
+  }
+
+  function toggleTask(cadence, id){
+    google.script.run.withSuccessHandler(function(data){ state = data; renderAll(); })
+      .withFailureHandler(function(err){ showToast('Error: ' + err.message); }).toggleTask(cadence, id);
+  }
+
+  function changeUrgency(cadence, id, urgency){
+    google.script.run.withSuccessHandler(function(data){ state = data; renderAll(); })
+      .withFailureHandler(function(err){ showToast('Error: ' + err.message); }).updateUrgency(cadence, id, urgency);
+  }
+
+  function deleteTask(cadence, id){
+    google.script.run.withSuccessHandler(function(data){ state = data; renderAll(); })
+      .withFailureHandler(function(err){ showToast('Error: ' + err.message); }).deleteTask(cadence, id);
+  }
+
+  function saveSettings(){
+    var email = document.getElementById('notify-email').value.trim();
+    var hour = Number(document.getElementById('reminder-hour').value);
+    if(!email){ showToast('Enter an email address'); return; }
+    google.script.run.withSuccessHandler(function(settings){
+      state.settings = settings; renderAll(); showToast('Saved — reminder scheduled');
+    }).withFailureHandler(function(err){ showToast('Error: ' + err.message); }).saveSettings(email, hour);
+  }
+
+  document.querySelectorAll('nav.tabs button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+      document.getElementById(btn.dataset.tab + '-panel').classList.add('active');
+      document.querySelectorAll('nav.tabs button').forEach(function(b){ b.classList.toggle('active', b===btn); });
+    });
+  });
+
+  document.addEventListener('keydown', function(e){
+    if(e.key !== 'Enter') return;
+    if(e.target.id === 'daily-input') addTask('daily');
+    else if(e.target.id === 'weekly-input') addTask('weekly');
+    else if(e.target.id === 'monthly-input') addTask('monthly');
+  });
+
+  refresh();
+</script>
+</body>
+</html>
